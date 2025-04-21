@@ -23,13 +23,13 @@ class TonguePredictor:
         return cls._instance
 
     def __init__(self,
-                 yolo_path='application/net/weights/yolov5.pt',
-                 sam_path='application/net/weights/sam_vit_b_01ec64.pth',
+                 yolo_path='D:/1000/SEC_practive/TongueDiagnosis/application/net\weights\yolov5.pt',
+                 sam_path='D:/1000/SEC_practive/TongueDiagnosis/application/net/weights/sam_vit_b_01ec64.pth',
                  resnet_path=[
-                     'application/net/weights/tongue_color.pth',
-                     'application/net/weights/tongue_coat_color.pth',
-                     'application/net/weights/thickness.pth',
-                     'application/net/weights/rot_and_greasy.pth'
+                     'D:/1000/SEC_practive/TongueDiagnosis/application/net/weights/tongue_color.pth',
+                     'D:/1000/SEC_practive/TongueDiagnosis/application/net/weights/tongue_coat_color.pth',
+                     'D:/1000/SEC_practive/TongueDiagnosis/application/net/weights/thickness.pth',
+                     'D:/1000/SEC_practive/TongueDiagnosis/application/net/weights/rot_and_greasy.pth'
                  ]
                  ):
         if self._initialized:

@@ -81,94 +81,32 @@
   ### 大模型配置
 
   #### 方案B：云端API
-  > 注意：通过 DeepSeek API 可以在低配置设备上使用大模型功能
+  > 注意：通过百炼 API 可以在低配置设备上使用大模型功能
 
-  1. **注册 DeepSeek API**
-     - 访问 [DeepSeek 开发者平台](https://www.deepseek.com/)
-     - 注册账号并创建 API Key
-     - 保存获取到的 API Key
+1. **注册百炼 API**
+   - 访问 [百炼开发者平台](https://dashscope.aliyun.com/)
+   - 注册账号并创建 API Key
+   - 保存获取到的 API Key
 
-  2. **安装依赖**
-  ```bash
-  pip install openai  # 使用 OpenAI SDK 调用 DeepSeek API
-  ```
+2. **安装依赖**
+```bash
+pip install openai  # 使用 OpenAI SDK 调用百炼 API
+```
 
-  3. **配置环境变量**
-  ```bash
-  # Windows CMD
-  set DEEPSEEK_API_KEY=你的API密钥
-  set DEEPSEEK_API_BASE=https://api.deepseek.com
-  
-  # Windows PowerShell
-  $env:DEEPSEEK_API_KEY="你的API密钥"
-  $env:DEEPSEEK_API_BASE="https://api.deepseek.com"
-  ```
+3. **配置环境变量**
+```bash
+# Windows CMD
+set DASHSCOPE_API_KEY=你的API密钥
 
-  4. **创建配置文件**
-  ```python
-  # filepath: application/config/api_config.py
-  from openai import OpenAI
-  import os
-  
-  class APIConfig:
-      API_KEY = os.getenv('DEEPSEEK_API_KEY')
-      BASE_URL = os.getenv('DEEPSEEK_API_BASE', 'https://api.deepseek.com')
-      MODEL = "deepseek-chat"  # 使用最新的 DeepSeek-V3 模型
-      
-      @classmethod
-      def get_client(cls):
-          return OpenAI(
-              api_key=cls.API_KEY,
-              base_url=cls.BASE_URL
-          )
-  ```
+# Windows PowerShell
+$env:DASHSCOPE_API_KEY="你的API密钥"
+```
 
-  5. **验证配置**
-  创建测试脚本：
-  ```python
-  # filepath: application/tests/test_api.py
-  from config.api_config import APIConfig
-  
-  def test_api():
-      try:
-          client = APIConfig.get_client()
-          response = client.chat.completions.create(
-              model=APIConfig.MODEL,
-              messages=[
-                  {"role": "system", "content": "你是一个中医舌诊助手"},
-                  {"role": "user", "content": "你好"}
-              ],
-              stream=False
-          )
-          print("✅ API测试成功！")
-          print(f"响应内容: {response.choices[0].message.content}")
-          return True
-      except Exception as e:
-          print(f"❌ API测试失败: {str(e)}")
-          return False
-  
-  if __name__ == "__main__":
-      test_api()
-  ```
-
-  6. **运行测试**
-  ```bash
-  # 在项目根目录下运行
-  python application/tests/test_api.py
-  ```
-
-  7. **常见问题**
-  - API 调用失败：
-    - 检查 API Key 是否正确设置
-    - 确认网络连接是否正常
-    - 验证环境变量是否生效
-  - 配额超限：
-    - 登录开发者平台查看 API 使用配额
-    - 考虑升级 API 套餐
-  - 响应超时：
-    - 检查网络连接
-    - 尝试使用代理或 VPN
-    - 适当增加超时时间设置
+5. **运行测试**
+```bash
+# 在项目根目录下运行
+python -m application.tests.test_api
+```
 
 ### 后端部署
 ```bash
@@ -191,6 +129,9 @@ sqlite3 AppDatabase.db < models/create_User.sql  # 自动创建4张数据表
 wget -P ./net/weights/ \
   https://github.com/TonguePicture-SKaRD/TongueDiagnosis/releases/download/V1.0_Beta/{resnet50,yolov5}.pth \
   https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+
+# 修改模型路径
+ 在application\net\predict.py中修改模型路径
 
 # 启动服务
 python ../run.py
