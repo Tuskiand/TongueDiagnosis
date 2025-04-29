@@ -1,6 +1,5 @@
 from .user_api import router_user
 from .model_api import router_tongue_analysis
-from .ollama_used import *
 
 
 def register_routes(app):

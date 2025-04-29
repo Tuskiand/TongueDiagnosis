@@ -28,7 +28,25 @@
 ---
 
 ## 🚀 快速开始
+```bash
+  # 进入虚拟环境 tonugueai
+  conda activate tongueai
+  # 设置apikey环境变量 cmd
+  set DASHSCOPE_API_KEY=sk-10c0353a5c254fda927647a6c714ac2a
+  # 测试api 在项目根目录下运行
+  python -m application.tests.test_api
+  # 后端启动
+  python run.py
+  # 前端启动
+  cd frontend
+  npm run build
+  # Electron桌面端
+  npm run electron:start
+  # Web浏览器端（推荐Chrome）
+  npm run dev
+  ```
 
+   
 ### 环境要求
 - Conda ≥23.10.0
 - Python 3.9.21
@@ -96,7 +114,7 @@ pip install openai  # 使用 OpenAI SDK 调用百炼 API
 3. **配置环境变量**
 ```bash
 # Windows CMD
-set DASHSCOPE_API_KEY=你的API密钥
+set DASHSCOPE_API_KEY=sk-10c0353a5c254fda927647a6c714ac2a
 
 # Windows PowerShell
 $env:DASHSCOPE_API_KEY="你的API密钥"
@@ -120,10 +138,11 @@ conda activate tongueai
 pip install -r requirements.txt
 
 # 数据库初始化
-sqlite3 AppDatabase.db < models/create_ChatRecord.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < models/create_Session.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < models/create_TongueAnalysis.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < models/create_User.sql  # 自动创建4张数据表
+cd d:\1000\SEC_practive\TongueDiagnosis\application
+sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_ChatRecord.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_Session.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_TongueAnalysis.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_User.sql  # 自动创建4张数据表
 
 # 模型权重配置
 wget -P ./net/weights/ \
@@ -134,7 +153,7 @@ wget -P ./net/weights/ \
  在application\net\predict.py中修改模型路径
 
 # 启动服务
-python ../run.py
+python run.py
 ```
 
 ### 前端启动
@@ -177,18 +196,40 @@ graph TD
 ### 目录结构
 ```
 TongueDiagnosis/
-├── application/          # 后端核心
-│   ├── config/           - 服务配置
-│   ├── core/             - 算法实现
-│   │   ├── detection.py  -- YOLOv5舌体定位
-│   │   ├── segmentation.py -- SAM图像分割
-│   │   └── analysis.py   -- ResNet50分类模型
-│   ├── net/weights/      - 模型权重文件
-│   └── routes/           - API路由
-├── frontend/             # 前端工程
-│   ├── src/              - Vue3源码
-│   │   ├── views/        -- 页面组件
-│   │   └── services/     -- API服务层
-│   └── electron/         - 桌面端封装
-└── docs/                 # 文档资源
+├── application/                # 后端核心
+│   ├── config/                - 服务配置
+│   │   └── api_config.py      -- API配置文件
+│   ├── models/                - 数据库模型
+│   │   ├── database.py        -- 数据库连接配置
+│   │   ├── models.py          -- ORM模型定义
+│   │   ├── create_User.sql    -- 用户表创建脚本
+│   │   ├── create_Session.sql -- 会话表创建脚本
+│   │   └── create_ChatRecord.sql  -- 聊天记录表创建脚本
+│   ├── net/                   - 神经网络模型
+│   │   ├── weights/           -- 模型权重文件
+│   │   │   ├── yolov5.pt     --- YOLO模型权重
+│   │   │   └── resnet50.pth  --- ResNet模型权重
+│   │   └── predict.py         -- 预测逻辑实现
+│   ├── orm/                   - ORM操作封装
+│   │   └── crud/             -- CRUD操作
+│   └── routes/               - API路由
+│       ├── model_api.py      -- 模型相关接口
+│       ├── user_api.py       -- 用户相关接口
+│       └── deepseek_api.py   -- 大模型API接口
+├── frontend/                  # 前端工程  
+│   ├── public/               - 静态资源
+│   │   └── tongue/          -- 舌象图片存储
+│   ├── src/                  - Vue3源码
+│   │   ├── components/       -- 组件
+│   │   │   ├── Header.vue   --- 头部导航
+│   │   │   └── mainPage/    --- 主页面组件
+│   │   ├── views/           -- 页面视图
+│   │   │   ├── Home.vue     --- 首页
+│   │   │   ├── Check.vue    --- 检测页
+│   │   │   └── LoginRegister.vue  --- 登录注册页
+│   │   └── router/          -- 路由配置
+│   │       └── index.js     --- 路由定义
+│   └── index.html           - 入口HTML
+└── README.md                 # 项目文档
+
 ```

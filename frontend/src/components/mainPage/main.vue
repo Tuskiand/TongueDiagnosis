@@ -373,7 +373,7 @@ const getPictureAnswer = async (fileData, sessionName) => {
     });
     await nextTick();
   }, 0);
-  const timeout = 15000; // 设置超时时间（以毫秒为单位，例如10秒）
+  const timeout = 60000; // 设置超时时间为60秒
 
   // 从 localStorage 获取 token
   let token = localStorage.getItem('token');

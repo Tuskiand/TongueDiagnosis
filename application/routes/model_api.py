@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 import json
 from typing import Generator
 
-from .ollama_used import OllamaStreamChatter
+from .deepseek_api import DeepseekChatter  # 替换 OllamaStreamChatter
 from ..core import get_current_user
 from ..models import schemas
 from ..orm.database import get_db
@@ -18,6 +18,7 @@ from ..orm import write_event, write_result, get_record_by_location, get_chat_re
 from ..config import Settings
 
 from ..net.predict import TonguePredictor
+from ..services.constitution_service import ConstitutionAnalyzer
 
 router_tongue_analysis = APIRouter()
 
@@ -70,60 +71,6 @@ def format_tongue_features(tongue_color,
         missing_key = int(str(e).split("'")[1])
         return f"错误：检测到无效特征值 {missing_key}，请检查输入范围"
 
-# 修改后的流式生成器
-# def generate_json_stream(user_id: int, bot, db: Session, session_id: int) -> Generator[str, None, None]:
-#     try:
-#         # 假设 bot.chat_stream_add 返回原始 token 生成器
-#         raw_stream = bot.chat_stream_add(user_id, db, session_id)
-#
-#         for token in raw_stream:
-#             # 包装为 JSON 并添加换行符（符合 ndjson 规范）
-#             yield json.dumps({
-#                 "token": token,
-#                 "session_id": session_id,
-#                 "status": "streaming"
-#             }) + "\n"
-#
-#         # 流结束时发送完成标记
-#         yield json.dumps({
-#             "status": "completed",
-#             "session_id": session_id
-#         }) + "\n"
-#
-#     except Exception as e:
-#         # 错误处理
-#         yield json.dumps({
-#             "error": str(e),
-#             "status": "failed",
-#             "session_id": session_id
-#         }) + "\n"
-#
-# def generate_json_stream_1(user_input: str,user_id: int, bot, feature: str,db: Session, session_id: int) -> Generator[str, None, None]:
-#     try:
-#         # 假设 bot.chat_stream_add 返回原始 token 生成器
-#         raw_stream = bot.chat_stream_first(user_input, feature, user_id, db, session_id)
-#
-#         for token in raw_stream:
-#             # 包装为 JSON 并添加换行符（符合 ndjson 规范）
-#             yield json.dumps({
-#                 "token": token,
-#                 "session_id": session_id,
-#                 "status": "streaming"
-#             }) + "\n"
-#
-#         # 流结束时发送完成标记
-#         yield json.dumps({
-#             "status": "completed",
-#             "session_id": session_id
-#         }) + "\n"
-#
-#     except Exception as e:
-#         # 错误处理
-#         yield json.dumps({
-#             "error": str(e),
-#             "status": "failed",
-#             "session_id": session_id
-#         }) + "\n"
 class UserInput(BaseModel):
     input: str
 @router_tongue_analysis.post('/session/{sessionId}')
@@ -140,7 +87,7 @@ async def upload(sessionId: int,
         )
     else:
         # user_input = "告诉我我的体质怎么样"
-        bot = OllamaStreamChatter(
+        bot = DeepseekChatter(
             system_prompt="你现在是一个专门用于舌诊的ai中医医生，我会在最开始告诉你用户舌头的四个图像特征，请你按照中医知识给用户一些建议"
         )
         create_new_chat_records(db=db, content=user_input.input, session_id=sessionId, role=1)
@@ -154,97 +101,114 @@ class inputPicture(BaseModel):
 async def upload(file_data: UploadFile = File(...),
                 user_input: str = Form(...),
                 name: str = Form(...),
-                 user: schemas.UserBase = Depends(get_current_user),
-                 db: Session = Depends(get_db)
-                 ):
-    """
-    上传舌头图片的路由
-    @param file_data: schemas.Upload
-        fileData: UploadFile
-    @param user: User，当前用户信息
-    @param db: 路由传回的当前会话的db，获取数据库链接
-    @return: TongueAnalysisResponse
-        code: int  # 0表示图片上传成功，201表示图片上传失败
-        message: str
-    """
-    if not user:
-        return schemas.BaseModel(
-            code=101,
-            message="can not find user",
-            data=None
-        )
-
-    # 模型分析
-    def analysis(img: SpooledTemporaryFile, record_id: int, function):
-        """
-        模型分析
-        :param img: 图片
-        :param record_id: 事件id
-        :param function: 保存结果的函数
-        :return: None
-        """
-        predictor = TonguePredictor()
-        predictor.predict(img=img, record_id=record_id, fun=function)
-
-    # 保存图片
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_extension = os.path.splitext(file_data.filename)[1]
-    filename = f"{timestamp}{file_extension}"
-    file_location = f"{Settings.IMG_PATH}/{filename}"
-    with open(file_location, "wb") as f:
-        contents = await file_data.read()
-        f.write(contents)
-    f.close()
-
-    # 写入事件
-    img_db_path = f"{Settings.IMG_DB_PATH}/{filename}"
-    code = write_event(user_id=user.id, img_src=img_db_path, state=0, db=db)
-
-    # 模型调用
-    if code == 0:  #成果分析结果
-        record = get_record_by_location(img_db_path, db=db)
-        analysis(img=file_data.file, record_id=record.id, function=write_result)
-        #从这里开始会有很长一段时间的模型运行时间
-        while True:
-            print(111)
-            result1 = get_result(img_db_path, db=db)
-            if result1.state != 0:
-                break
-            time.sleep(1)
-
-        result = get_result(img_db_path, db=db)
-        if result.state != 1:
+                user: schemas.UserBase = Depends(get_current_user),
+                db: Session = Depends(get_db)):
+    try:
+        if not user:
             return schemas.BaseModel(
-                code=result.state,
-                message="图片有问题，请看code",
+                code=101,
+                message="can not find user",
                 data=None
             )
-        tongue_color = result.tongue_color
-        coating_color = result.coating_color
-        tongue_thickness = result.tongue_thickness
-        rot_greasy = result.rot_greasy
-        #此时4个特征都出来了
-        feature = format_tongue_features(tongue_color,coating_color,tongue_thickness,rot_greasy)
-        #接下来开始对接deepseek
-        # user_input = "告诉我我的体质怎么样
-        bot = OllamaStreamChatter(
-            system_prompt="你现在是一个专门用于舌诊的ai中医医生，我会在最开始告诉你用户舌头的四个图像特征，请你按照中医知识给用户一些建议"
-        )
-        new_message = create_new_session(ID=user.id, db=db, tittle=name)
-        session_new_id = new_message.id
-        create_new_chat_records(db=db, content=user_input, session_id=session_new_id, role=1)
-        return bot.chat_stream_first(user_input, feature, user.id, db, session_new_id)
-    else:
-        return schemas.UploadResponse(
-            code=201,
-            message="operation failed",
+
+        # 模型分析
+        def analysis(img: SpooledTemporaryFile, record_id: int, function):
+            """
+            模型分析
+            :param img: 图片
+            :param record_id: 事件id
+            :param function: 保存结果的函数
+            :return: None
+            """
+            predictor = TonguePredictor()
+            predictor.predict(img=img, record_id=record_id, fun=function)
+
+        # 保存图片
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = os.path.splitext(file_data.filename)[1]
+        filename = f"{timestamp}{file_extension}"
+        file_location = f"{Settings.IMG_PATH}/{filename}"
+        with open(file_location, "wb") as f:
+            contents = await file_data.read()
+            f.write(contents)
+        f.close()
+
+        # 写入事件
+        img_db_path = f"{Settings.IMG_DB_PATH}/{filename}"
+        code = write_event(user_id=user.id, img_src=img_db_path, state=0, db=db)
+
+        # 模型调用
+        if code == 0:  #成果分析结果
+            record = get_record_by_location(img_db_path, db=db)
+            analysis(img=file_data.file, record_id=record.id, function=write_result)
+            #从这里开始会有很长一段时间的模型运行时间
+            
+            # 增加最大等待时间和检查间隔
+            max_attempts = 30  # 30次 × 2秒 = 60秒
+            attempt = 0
+            
+            while attempt < max_attempts:
+                print(f"[INFO] 等待分析结果, 尝试次数: {attempt + 1}")
+                result1 = get_result(img_db_path, db=db)
+                if result1.state != 0:
+                    break
+                time.sleep(2)  # 增加间隔时间到2秒
+                attempt += 1
+
+            result = get_result(img_db_path, db=db)
+            if result.state != 1:
+                return schemas.BaseModel(
+                    code=result.state,
+                    message="图片有问题，请看code",
+                    data=None
+                )
+            tongue_color = result.tongue_color
+            coating_color = result.coating_color
+            tongue_thickness = result.tongue_thickness
+            rot_greasy = result.rot_greasy
+            #此时4个特征都出来了
+            
+            # 在这里添加体质分析代码
+            analyzer = ConstitutionAnalyzer()
+            constitution_result = analyzer.analyze_constitution({
+                "tongue_color": tongue_color,
+                "coating_color": coating_color,
+                "thickness": tongue_thickness,
+                "rot_greasy": rot_greasy
+            })
+            
+            # 合并分析结果
+            feature = format_tongue_features(tongue_color, coating_color, 
+                                            tongue_thickness, rot_greasy)
+            
+            combined_result = {
+                "tongue_features": feature,
+                "constitution_analysis": constitution_result.get("constitution_analysis", "")
+            }
+            
+            #接下来开始对接deepseek
+            # user_input = "告诉我我的体质怎么样
+            bot = DeepseekChatter(
+                system_prompt="你现在是一个专门用于舌诊的ai中医医生，我会在最开始告诉你用户舌头的四个图像特征，请你按照中医知识给用户一些建议"
+            )
+            new_message = create_new_session(ID=user.id, db=db, tittle=name)
+            session_new_id = new_message.id
+            create_new_chat_records(db=db, content=user_input, session_id=session_new_id, role=1)
+            return bot.chat_stream_first(user_input, combined_result, user.id, db, session_new_id)
+        else:
+            return schemas.UploadResponse(
+                code=201,
+                message="operation failed",
+                data=None
+            )
+    except Exception as e:
+        return schemas.BaseModel(
+            code=500,
+            message=f"Internal server error: {str(e)}",
             data=None
         )
 
-
 @router_tongue_analysis.get("/record/{sessionid}", response_model=schemas.ChatSessionRecordsResponse)
-
-
 async def get_chat_records_by_session(sessionid: int,
                                       db: Session = Depends(get_db),
                                       user: schemas.UserBase = Depends(get_current_user)
@@ -273,11 +237,6 @@ async def get_chat_records_by_session(sessionid: int,
         else:
             records = []
             for record in chat_record:
-                # if isinstance(record.create_at, datetime):
-                #     timestamp = int(record.create_at.timestamp())
-                # else:
-                #     timestamp = None  # 如果 create_at 不是有效的 datetime，设置为 None 或默认值
-
                 records.append(schemas.ChatRecordResponse(
                     content=record.content,
                     create_at=record.create_at,
@@ -291,7 +250,6 @@ async def get_chat_records_by_session(sessionid: int,
                 message="operation success",
                 data=data_temp,
             )
-
 
 @router_tongue_analysis.get("/session", response_model=schemas.SessionIdResponse)
 async def get_chat_records_id(db: Session = Depends(get_db),
@@ -314,5 +272,50 @@ async def get_chat_records_id(db: Session = Depends(get_db),
             code=0,
             message="operation success",
             data=data_temp
+        )
+
+@router_tongue_analysis.post('/analyze-constitution')
+async def analyze_constitution(
+    tongue_color: str,
+    coating_color: str,
+    thickness: str,  
+    rot_greasy: str,
+    user: schemas.UserBase = Depends(get_current_user)
+):
+    """体质分析接口"""
+    if not user:
+        return schemas.ResponseModel(
+            code=101,
+            message="未找到用户信息",
+            data=None
+        )
+        
+    try:
+        analyzer = ConstitutionAnalyzer()
+        result = analyzer.analyze_constitution({
+            "tongue_color": tongue_color,
+            "coating_color": coating_color, 
+            "thickness": thickness,
+            "rot_greasy": rot_greasy
+        })
+        
+        if not result["success"]:
+            return schemas.ResponseModel(
+                code=500,
+                message="体质分析失败",
+                data=None
+            )
+            
+        return schemas.ResponseModel(
+            code=0,
+            message="分析成功",
+            data=result
+        )
+        
+    except Exception as e:
+        return schemas.ResponseModel(
+            code=500,
+            message=f"服务器内部错误: {str(e)}",
+            data=None
         )
 

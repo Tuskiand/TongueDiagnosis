@@ -58,6 +58,13 @@ async function handleSuccess(event) {
   }, 600);
   // emit("success", {success: true, base64: base64String});
 
+  ElMessage({
+    showClose: true,
+    message: '上传成功，请等待约60秒完成分析',
+    type: 'success',
+    duration: 3000
+  });
+
   // axios.post('/model/upload', formData, {
   //   headers: {
   //     'Content-Type': 'multipart/form-data',
