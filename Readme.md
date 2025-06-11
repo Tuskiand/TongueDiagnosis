@@ -1,5 +1,15 @@
 # 舌诊宝：中医舌象诊断AI助手 🩺🤖
 
+> ⚠️ **项目声明**：本项目基于 [TonguePicture-SKaRD/TongueDiagnosis](https://github.com/TonguePicture-SKaRD/TongueDiagnosis) 进行开发和改进。
+> 
+> **主要改进**：
+> - 替换本地部署的 Ollama 模型为云端百炼 API
+> - 优化图像处理流程
+> - 增加体质辨识功能
+> - 改进错误处理机制
+> 
+> 感谢原项目作者的开源贡献,助我完成了一个课程设计！！！
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9](https://img.shields.io/badge/Python-3.9%2B-green.svg)](https://www.python.org/)
 [![Conda 23.10](https://img.shields.io/badge/Conda-23.10%2B-blue.svg)](https://docs.conda.io/)
@@ -138,11 +148,11 @@ conda activate tongueai
 pip install -r requirements.txt
 
 # 数据库初始化
-cd d:\1000\SEC_practive\TongueDiagnosis\application
-sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_ChatRecord.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_Session.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_TongueAnalysis.sql  # 自动创建4张数据表
-sqlite3 AppDatabase.db < D:/1000/SEC_practive/TongueDiagnosis/application/models/create_User.sql  # 自动创建4张数据表
+cd ..TongueDiagnosis\application
+sqlite3 AppDatabase.db < ..TongueDiagnosis/application/models/create_ChatRecord.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < ..TongueDiagnosis/application/models/create_Session.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < ..TongueDiagnosis/application/models/create_TongueAnalysis.sql  # 自动创建4张数据表
+sqlite3 AppDatabase.db < ..TongueDiagnosis/application/models/create_User.sql  # 自动创建4张数据表
 
 # 模型权重配置
 wget -P ./net/weights/ \
@@ -231,5 +241,6 @@ TongueDiagnosis/
 │   │       └── index.js     --- 路由定义
 │   └── index.html           - 入口HTML
 └── README.md                 # 项目文档
+
 
 ```

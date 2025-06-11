@@ -1,3 +1,8 @@
+"""
+This project is based on TonguePicture-SKaRD/TongueDiagnosis
+Original project: https://github.com/TonguePicture-SKaRD/TongueDiagnosis
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import register_routes
