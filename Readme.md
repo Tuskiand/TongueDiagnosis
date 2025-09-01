@@ -124,7 +124,7 @@ pip install openai  # 使用 OpenAI SDK 调用百炼 API
 3. **配置环境变量**
 ```bash
 # Windows CMD
-set DASHSCOPE_API_KEY=sk-10c0353a5c254fda927647a6c714ac2a
+set DASHSCOPE_API_KEY="你的API密钥"
 
 # Windows PowerShell
 $env:DASHSCOPE_API_KEY="你的API密钥"
